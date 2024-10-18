@@ -7,6 +7,7 @@ import codecs
 import re
 import collections
 import contextlib
+import uuid
 
 try:
     from StringIO import StringIO
@@ -948,8 +949,13 @@ class OfxParser(object):
 
         for transaction_ofx in stmt_ofx.findAll('stmttrn'):
             try:
-                statement.transactions.append(
-                    cls.parseTransaction(transaction_ofx))
+                transaction = cls.parseTransaction(transaction_ofx)
+
+                if any(st.id == transaction.id for st in statement.transactions):
+                    # Casos em que o ID se repete no mesmo arquivo: Banco Daycoval
+                    transaction.id = transaction.id + "-" + uuid.uuid4().hex
+
+                statement.transactions.append(transaction)
             except OfxParserException:
                 ofxError = sys.exc_info()[1]
                 statement.discarded_entries.append(
